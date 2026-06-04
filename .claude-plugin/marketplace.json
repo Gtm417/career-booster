@@ -15,7 +15,10 @@
         "name": "Tima",
         "email": "godik417@gmail.com"
       },
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "Gtm417/career-booster"
+      },
       "category": "productivity"
     }
   ]

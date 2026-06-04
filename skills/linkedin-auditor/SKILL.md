@@ -89,7 +89,7 @@ Wait for the screenshot upload or explicit "skip" before proceeding.
 
 ### Browser mode
 
-Use `tabs_context_mcp` to get a valid tab ID, then navigate to the profile URL.
+Call `tabs_context_mcp` with `createIfEmpty: true` to get a valid tab ID (this creates a new tab automatically if none is open), then navigate to the profile URL.
 
 **LinkedIn public profiles do not require login.** Navigate directly to the URL. Do not ask the user to log in before attempting.
 
@@ -125,7 +125,18 @@ Capture every visible section from the text:
 - Contact info — email, website links, custom URL
 - Open to Work indicator
 
-**Incomplete page load check:** If the page text contains only the header section and Activity (no About, Experience, or Skills sections), the page did not fully load. Attempt one retry: scroll to the top, wait 3 seconds, repeat the scroll sequence. If still incomplete after retry, switch to manual mode.
+**Incomplete page load check:** If the page text contains only the header section and Activity (no About, Experience, or Skills sections), the page did not fully load. Attempt one retry: scroll to the top, wait 3 seconds, repeat the scroll sequence. If still incomplete after retry, use the computer scroll fallback below before switching to manual mode.
+
+**Computer scroll fallback** — use when `get_page_text` returns incomplete content after both JS scroll attempts:
+
+Instead of JavaScript scrollTo, use `computer` with `scroll` action to physically scroll the page as a real browser input, then take a screenshot at each position to visually capture section content. Sequence:
+
+1. `computer` screenshot — capture the hero area (photo, banner, headline, OTW badge)
+2. `computer` scroll down (large increment, e.g. 800px) → screenshot — capture About and top of Experience
+3. Repeat scroll → screenshot until the page bottom is reached (typically 6–10 screenshots for a full profile)
+4. Extract all visible section content from the screenshots: About text, each Experience entry with bullets, Skills, Featured, Recommendations, Certifications, contact info, Open to Work status
+
+If sections are still not visible in screenshots (blank / skeleton-loading), mark them as "not loaded — not assessed" in the scorecard and note this in the Verdict.
 
 **If LinkedIn blocks the page or shows a login wall:**
 Do not ask the user to log in. Switch to manual mode immediately:

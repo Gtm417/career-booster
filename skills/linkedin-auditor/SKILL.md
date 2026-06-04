@@ -269,3 +269,5 @@ Three changes with the highest expected impact on recruiter visibility. Each as 
 ---
 
 ## Failure handling
+
+Apply the appropriate protocol from `references/connector-failure-protocols.md` if any connector or file read fails during this skill. Never abort silently — always report what failed, what succeeded, and offer an alternative path.

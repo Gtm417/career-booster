@@ -2,7 +2,7 @@
 name: linkedin-auditor
 description: |
   Audits a LinkedIn profile against recruiter search behavior and LinkedIn's ranking algorithm. Use when the user runs /audit-linkedin or says "audit my LinkedIn", "review my LinkedIn profile", "score my LinkedIn", "check my LinkedIn", "how good is my LinkedIn", "check my LinkedIn for recruiters", "is my LinkedIn profile strong", or "audit someone's LinkedIn profile". Works for own account or a third-party profile. Requires a LinkedIn profile URL.
-allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__javascript_tool, mcp__Claude_in_Chrome__find]
+allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__javascript_tool, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__computer, mcp__Claude_in_Chrome__browser_batch, mcp__Claude_in_Chrome__tabs_context_mcp]
 ---
 
 # LinkedIn auditor
@@ -47,7 +47,7 @@ Record: `account_mode` = own / third-party. `session_mode` = browser / manual.
 
 ## Step 2: Collect profile URL, CV, and target role
 
-Ask for all three in one message. Do not split across multiple messages.
+Ask for URL and CV in one message. Extract the target role from the CV after upload — do not ask for it upfront.
 
 **Profile URL:**
 - `account_mode = own`: load from `personal.linkedinUrl` in the stored profile. If present, confirm it with the user rather than asking.
@@ -59,7 +59,9 @@ Ask for all three in one message. Do not split across multiple messages.
 
 **Target role:**
 - `account_mode = own`: load from `targets.roles[0]` in the stored profile. If present, state it and ask if it's still the target. If absent, ask.
-- `account_mode = third-party`: check the uploaded CV for a stated target title. If absent, ask.
+- `account_mode = third-party`: read the uploaded CV and extract the most recent job title or stated target role. Present it for confirmation:
+  > Based on the CV, I'm treating the target role as **[extracted title]**. Does that match, or would you like to change it?
+  If no role can be extracted from the CV, ask directly.
 
 **SSI — inform, do not collect yet:**
 Include this line in the same message so the user can prepare:
@@ -87,27 +89,31 @@ Wait for the screenshot upload or explicit "skip" before proceeding.
 
 ### Browser mode
 
-Navigate to the profile URL using Claude in Chrome.
+Use `tabs_context_mcp` to get a valid tab ID, then navigate to the profile URL.
 
 **LinkedIn public profiles do not require login.** Navigate directly to the URL. Do not ask the user to log in before attempting.
 
-**Scroll to load all content** — LinkedIn lazy-loads sections below the fold. After navigating, execute a scroll sequence to trigger full page load:
+**Scroll to load all content** — LinkedIn lazy-loads sections below the fold. Use `browser_batch` to navigate and scroll in a single batched sequence with waits between each scroll position:
 
-```javascript
-window.scrollTo(0, document.body.scrollHeight / 4);
 ```
-Wait 1 second, then:
-```javascript
-window.scrollTo(0, document.body.scrollHeight / 2);
-```
-Wait 1 second, then:
-```javascript
-window.scrollTo(0, document.body.scrollHeight);
+browser_batch actions:
+1. navigate to profile URL
+2. wait 2000ms
+3. javascript: window.scrollTo(0, document.body.scrollHeight * 0.25)
+4. wait 1500ms
+5. javascript: window.scrollTo(0, document.body.scrollHeight * 0.5)
+6. wait 1500ms
+7. javascript: window.scrollTo(0, document.body.scrollHeight * 0.75)
+8. wait 1500ms
+9. javascript: window.scrollTo(0, document.body.scrollHeight)
+10. wait 2000ms
 ```
 
-Then read the full page text with `get_page_text`.
+After scrolling, call `get_page_text` to extract the full text content.
 
-Capture every visible section:
+**Take a screenshot for photo and banner assessment.** After `get_page_text`, scroll back to the top and call `computer` (screenshot) to capture the profile hero area (name, photo, banner, headline). Describe what is visible: photo quality, framing, banner image or default gray, Open to Work badge.
+
+Capture every visible section from the text:
 - Name, location, headline (full text)
 - About section (full text, or confirm empty)
 - All Experience entries — title, company, dates, full description and bullets
@@ -117,8 +123,9 @@ Capture every visible section:
 - Recommendations — count and any visible text
 - Certifications and Licenses
 - Contact info — email, website links, custom URL
-- Photo and banner (describe what is visible)
 - Open to Work indicator
+
+**Incomplete page load check:** If the page text contains only the header section and Activity (no About, Experience, or Skills sections), the page did not fully load. Attempt one retry: scroll to the top, wait 3 seconds, repeat the scroll sequence. If still incomplete after retry, switch to manual mode.
 
 **If LinkedIn blocks the page or shows a login wall:**
 Do not ask the user to log in. Switch to manual mode immediately:
@@ -135,7 +142,7 @@ Note: Photo and Banner cannot be assessed from text alone. If the user shares a 
 ## Step 5: Read SSI
 
 ### Browser + own account
-Navigate to `linkedin.com/sales/ssi`. This page requires the user to be logged into their own LinkedIn account in the browser. Use the same scroll sequence from Step 4 to ensure full page load.
+Navigate to `linkedin.com/sales/ssi`. This page requires the user to be logged into their own LinkedIn account in the browser. Use the same scroll sequence from Step 4 to ensure full page load. Take a screenshot if needed to read scores.
 
 If a login wall appears:
 > Please log into LinkedIn in your browser, then let me know and I'll read the SSI page automatically.

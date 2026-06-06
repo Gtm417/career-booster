@@ -2,7 +2,7 @@
 
 `connections-queue.json` is the **operational staging queue** for LinkedIn connection discovery and the review dashboard. It is distinct from the profile's `outreach[]` array (the canonical system of record). Discovery writes here; only when a connection is actually sent is it mapped into `profile.outreach[]`.
 
-It is a plain file in the canonical career-booster folder so the dashboard artifact can read and write it directly through the Desktop Commander connector.
+It is a plain file in the canonical career-booster folder. The agent-side skills (find-connections, the scheduled task, the dashboard build) read/write it directly. The dashboard *artifact* cannot touch local files (sandbox limit), so it renders an embedded snapshot and exports status changes for the user to paste back — see the connection-dashboard skill.
 
 ---
 

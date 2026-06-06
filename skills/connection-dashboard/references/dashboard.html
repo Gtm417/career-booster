@@ -7,60 +7,47 @@
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; background: #f7f8fa; color: #1a1d21;
-    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
-  header.top { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-  h1 { font-size: 18px; margin: 0; }
-  .sub { color: #5b636e; font-size: 12px; }
-  .counts { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; }
-  .count-pill { background: #eef0f3; border-radius: 999px; padding: 3px 10px; font-size: 12px; color: #3a4048; }
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 16px; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    border: 1px solid #d4d8dd; background: #fff; border-radius: 999px;
-    padding: 4px 12px; font-size: 12px; cursor: pointer; color: #3a4048;
-  }
-  .chip.active { background: #1a1d21; color: #fff; border-color: #1a1d21; }
-  select { padding: 5px 8px; border: 1px solid #d4d8dd; border-radius: 8px; background: #fff; font: inherit; }
-  .grid { display: grid; gap: 12px; }
-  .card { background: #fff; border: 1px solid #e4e7eb; border-radius: 12px; padding: 14px 16px; }
-  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  .name { font-weight: 650; font-size: 15px; }
-  .role { color: #3a4048; font-size: 13px; margin-top: 1px; }
-  .badge { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
-  .b-hiring_manager { background: #e7f0ff; color: #1c4fb3; }
-  .b-recruiter { background: #eafaf0; color: #1c7d4d; }
-  .b-peer { background: #fff3e0; color: #9a5b00; }
-  .b-alumni { background: #f3e9ff; color: #6b34b3; }
-  .b-other { background: #eef0f3; color: #3a4048; }
-  .why { color: #5b636e; font-size: 12.5px; margin: 8px 0 10px; }
-  .msg { position: relative; background: #f4f5f7; border: 1px solid #e4e7eb; border-radius: 8px; padding: 10px 12px; font-size: 13px; white-space: pre-wrap; }
-  .msg-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
-  .chars { font-size: 11px; color: #8a9097; }
-  .chars.over { color: #c0392b; font-weight: 600; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-  button.act {
-    border: 1px solid #d4d8dd; background: #fff; border-radius: 8px;
-    padding: 6px 12px; font-size: 12.5px; cursor: pointer; color: #1a1d21;
-  }
-  button.act:hover { background: #f0f1f3; }
-  button.primary { background: #1a1d21; color: #fff; border-color: #1a1d21; }
-  button.primary:hover { background: #33373d; }
-  a.profile { text-decoration: none; }
-  .status-tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; }
-  .s-new { background: #e7f0ff; color: #1c4fb3; }
-  .s-reviewed { background: #fff3e0; color: #9a5b00; }
-  .s-sent { background: #eafaf0; color: #1c7d4d; }
-  .s-skipped { background: #f0f1f3; color: #8a9097; }
-  .empty, .banner { text-align: center; color: #5b636e; padding: 40px 16px; }
-  .banner { background: #fff4f4; color: #a3271f; border: 1px solid #f3c9c5; border-radius: 10px; text-align: left; padding: 14px 16px; margin-bottom: 14px; }
-  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-    background: #1a1d21; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
-  .toast.show { opacity: 1; }
-  .dim { opacity: .55; }
+  body { margin:0; background:#f7f8fa; color:#1a1d21; font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:920px; margin:0 auto; padding:16px 16px 80px; }
+  header.top { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  h1 { font-size:18px; margin:0; }
+  .sub { color:#5b636e; font-size:12px; }
+  .counts { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 4px; }
+  .count-pill { background:#eef0f3; border-radius:999px; padding:3px 10px; font-size:12px; color:#3a4048; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:12px 0 16px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1px solid #d4d8dd; background:#fff; border-radius:999px; padding:4px 12px; font-size:12px; cursor:pointer; color:#3a4048; }
+  .chip.active { background:#1a1d21; color:#fff; border-color:#1a1d21; }
+  select { padding:5px 8px; border:1px solid #d4d8dd; border-radius:8px; background:#fff; font:inherit; }
+  .grid { display:grid; gap:12px; }
+  .card { background:#fff; border:1px solid #e4e7eb; border-radius:12px; padding:14px 16px; }
+  .card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .name { font-weight:650; font-size:15px; }
+  .role { color:#3a4048; font-size:13px; margin-top:1px; }
+  .badge { font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; padding:2px 8px; border-radius:6px; white-space:nowrap; }
+  .b-hiring_manager { background:#e7f0ff; color:#1c4fb3; } .b-recruiter { background:#eafaf0; color:#1c7d4d; }
+  .b-peer { background:#fff3e0; color:#9a5b00; } .b-alumni { background:#f3e9ff; color:#6b34b3; } .b-other { background:#eef0f3; color:#3a4048; }
+  .why { color:#5b636e; font-size:12.5px; margin:8px 0 10px; }
+  .msg { background:#f4f5f7; border:1px solid #e4e7eb; border-radius:8px; padding:10px 12px; font-size:13px; white-space:pre-wrap; }
+  .msg-meta { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+  .chars { font-size:11px; color:#8a9097; } .chars.over { color:#c0392b; font-weight:600; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  button.act { border:1px solid #d4d8dd; background:#fff; border-radius:8px; padding:6px 12px; font-size:12.5px; cursor:pointer; color:#1a1d21; }
+  button.act:hover { background:#f0f1f3; }
+  button.primary { background:#1a1d21; color:#fff; border-color:#1a1d21; } button.primary:hover { background:#33373d; }
+  button.sel { outline:2px solid #1a1d21; }
+  a.profile { text-decoration:none; }
+  .status-tag { font-size:11px; padding:2px 8px; border-radius:6px; }
+  .s-new { background:#e7f0ff; color:#1c4fb3; } .s-reviewed { background:#fff3e0; color:#9a5b00; }
+  .s-sent { background:#eafaf0; color:#1c7d4d; } .s-skipped { background:#f0f1f3; color:#8a9097; }
+  .empty { text-align:center; color:#5b636e; padding:40px 16px; }
+  .dim { opacity:.55; }
+  .savebar { position:fixed; left:0; right:0; bottom:0; background:#1a1d21; color:#fff; padding:10px 16px; display:none; align-items:center; justify-content:space-between; gap:12px; }
+  .savebar.show { display:flex; }
+  .savebar button { background:#fff; color:#1a1d21; border:none; border-radius:8px; padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .savebar .hint { font-size:12px; color:#c7ccd2; }
+  .toast { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); background:#1a1d21; color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:1; }
 </style>
 </head>
 <body>
@@ -68,7 +55,7 @@
   <header class="top">
     <div>
       <h1>Connection Review Board</h1>
-      <div class="sub">Career Booster · reviewed here, sent by you</div>
+      <div class="sub">Career Booster · review here, send on LinkedIn yourself</div>
     </div>
   </header>
   <div class="counts" id="counts"></div>
@@ -82,183 +69,146 @@
       <option value="contactName-asc">Name A–Z</option>
     </select>
   </div>
-  <div id="bannerSlot"></div>
   <div class="grid" id="grid"></div>
+</div>
+<div class="savebar" id="savebar">
+  <div style="flex:1; min-width:0;">
+    <div><b id="pendCount">0</b> unsaved change(s) — copy this line and paste into chat so Claude saves them:</div>
+    <input id="cmdBox" readonly onclick="this.select()" style="width:100%; margin-top:6px; padding:6px 8px; border-radius:6px; border:none; font:12px ui-monospace,Consolas,monospace;">
+  </div>
+  <button id="copyUpdates">Copy</button>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   CONFIG — backed by the Desktop Commander MCP connector, which
-   exposes callable read/write file tools (verified working).
-   The connection-dashboard skill substitutes __QUEUE_PATH__ with
-   the absolute queue path before create_artifact.
-     read:  read_file({ path })  -> { fileName, content }  where
-            content is the file text prefixed by a
-            "[Reading N lines ...]" header that must be stripped.
-     write: write_file({ path, content, mode: "rewrite" })
-   The dashboard is the sole writer of the queue file.
+   Connection Review Board — EMBED + PASTE design.
+
+   The Cowork artifact sandbox can only call HOSTED MCP connectors via
+   callMcpTool (local connectors like Desktop Commander return 400), and
+   exposes NO function to send a message back to chat. So:
+     • READ  — the connection-dashboard skill reads connections-queue.json
+               agent-side and bakes the connections array in below at build
+               time (replaces __CONNECTIONS_JSON__). No file call from here.
+     • WRITE — status changes can't be written from the sandbox. They are
+               staged in localStorage and exported as a one-line command the
+               user pastes into chat; the skill then writes them to the queue.
+
+   The skill substitutes:
+     __QUEUE_PATH__       → absolute connectionQueuePath from the profile
+     __CONNECTIONS_JSON__ → JSON array of the queue's `connections`
    ============================================================ */
-const CONFIG = {
-  queuePath: "__QUEUE_PATH__",
-  readTool:  "mcp__Desktop_Commander__read_file",
-  writeTool: "mcp__Desktop_Commander__write_file",
+const QUEUE_DATA = {
+  "queuePath": "__QUEUE_PATH__",
+  "connections": __CONNECTIONS_JSON__
 };
 
-const STATUSES = ["new", "reviewed", "sent", "skipped"];
-const LS_KEY = "cb_dashboard_view";
-let QUEUE = null;
-let view = loadView();
+const STATUSES = ["new","reviewed","sent","skipped"];
+const LS_VIEW = "cb_view", LS_PEND = "cb_pending_" + QUEUE_DATA.queuePath;
+let view = load(LS_VIEW, { status:"all", company:"", sort:"dateFound-desc" });
+let pending = load(LS_PEND, {});   // { id: status }
 
-function loadView() {
-  try { return Object.assign({ status: "all", company: "", sort: "dateFound-desc" }, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); }
-  catch { return { status: "all", company: "", sort: "dateFound-desc" }; }
-}
-function saveView() { try { localStorage.setItem(LS_KEY, JSON.stringify(view)); } catch {} }
+function load(k, d){ try { return Object.assign({}, d, JSON.parse(localStorage.getItem(k) || "{}")); } catch { return d; } }
+function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
 
-function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 1800);
-}
-function banner(html) { document.getElementById("bannerSlot").innerHTML = html ? `<div class="banner">${html}</div>` : ""; }
-function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+// effective status = embedded status unless a pending change overrides it
+function statusOf(c){ return pending[c.id] || c.status || "new"; }
 
-/* Parse Desktop Commander's read_file result into the queue object.
-   callMcpTool returns { content, structuredContent, isError }. The payload is
-   { fileName, content: "<file text>" }, and the file text is prefixed with a
-   "[Reading N lines ...]" header. Strip everything before the first "{". */
-function extractQueue(r) {
-  if (!r || r.isError) throw new Error(r && r.content && r.content[0] ? r.content[0].text : "tool error");
-  let raw = r.structuredContent ?? (r.content && r.content[0] && r.content[0].text);
-  let obj = typeof raw === "string" ? JSON.parse(raw) : raw;
-  let fileText = (obj && typeof obj.content === "string") ? obj.content
-               : (typeof obj === "string" ? obj : JSON.stringify(obj));
-  const brace = fileText.indexOf("{");
-  if (brace > 0) fileText = fileText.slice(brace);   // drop "[Reading ...]" header
-  return JSON.parse(fileText);
+function setStatus(id, s){
+  const base = QUEUE_DATA.connections.find(c=>c.id===id);
+  if (base && (base.status||"new") === s) delete pending[id];   // back to original → not pending
+  else pending[id] = s;
+  save(LS_PEND, pending);
+  render();
 }
 
-async function loadQueue() {
+function pendingCmd(){
+  const parts = Object.entries(pending).map(([id,s]) => `${id}=${s}`);
+  return parts.length ? "Apply status changes to my connection queue: " + parts.join(", ") : "";
+}
+// Robust copy: hidden-textarea execCommand first (works in the sandbox), then clipboard API, else ask to copy manually.
+function robustCopy(text, okMsg){
+  let done = false;
   try {
-    const r = await window.cowork.callMcpTool(CONFIG.readTool, { path: CONFIG.queuePath });
-    QUEUE = extractQueue(r);
-    if (!QUEUE.connections) QUEUE.connections = [];
-    banner("");
-    render();
-  } catch (e) {
-    banner(`Couldn't load the connection queue.<br><small>${esc(e.message)}</small><br>
-      Check that the Desktop Commander connector is enabled and that <code>${esc(CONFIG.queuePath)}</code> exists. Use the Reload button after fixing.`);
-  }
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    done = !!(document.execCommand && document.execCommand("copy"));
+    document.body.removeChild(ta);
+  } catch (_) {}
+  if (done) { toast(okMsg || "Copied"); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(()=>toast(okMsg || "Copied")).catch(()=>toast("Select the text and press Ctrl+C"));
+  } else { toast("Select the text and press Ctrl+C"); }
+}
+function copyUpdates(){
+  const cmd = pendingCmd();
+  if (!cmd) return;
+  const box = document.getElementById("cmdBox"); if (box){ box.focus(); box.select(); }
+  robustCopy(cmd, "Copied — paste into chat to save");
 }
 
-/* Single-record read-modify-write. Dashboard is the sole writer. */
-async function setStatus(id, status) {
-  try {
-    const r = await window.cowork.callMcpTool(CONFIG.readTool, { path: CONFIG.queuePath });
-    const fresh = extractQueue(r);
-    const rec = (fresh.connections || []).find(c => c.id === id);
-    if (!rec) { toast("Record not found — reloading"); return loadQueue(); }
-    rec.status = status;
-    if (status === "sent") rec.dateSent = new Date().toISOString().slice(0, 10);
-    fresh._lastUpdated = new Date().toISOString();
-    const w = await window.cowork.callMcpTool(CONFIG.writeTool, { path: CONFIG.queuePath, content: JSON.stringify(fresh, null, 2), mode: "rewrite" });
-    if (w && w.isError) throw new Error(w.content && w.content[0] ? w.content[0].text : "write failed");
-    QUEUE = fresh;
-    toast(`Marked ${status}`);
-    render();
-  } catch (e) {
-    toast("Write failed — status not saved");
-    banner(`Status write failed.<br><small>${esc(e.message)}</small>`);
-  }
-}
-
-function copyMsg(text, btn) {
-  navigator.clipboard.writeText(text).then(() => {
-    const old = btn.textContent; btn.textContent = "Copied"; setTimeout(() => btn.textContent = old, 1200);
-  }).catch(() => toast("Copy failed"));
-}
-
-function visibleConnections() {
-  let list = (QUEUE.connections || []).slice();
-  if (view.status !== "all") list = list.filter(c => (c.status || "new") === view.status);
+function visible(){
+  let list = QUEUE_DATA.connections.slice();
+  if (view.status !== "all") list = list.filter(c => statusOf(c) === view.status);
   if (view.company) list = list.filter(c => c.company === view.company);
   const [key] = view.sort.split("-");
-  list.sort((a, b) => {
-    const av = (a[key] || "").toString().toLowerCase(), bv = (b[key] || "").toString().toLowerCase();
-    return av < bv ? -1 : av > bv ? 1 : 0;
-  });
+  list.sort((a,b)=>{ const av=(a[key]||"").toLowerCase?(a[key]||"").toString().toLowerCase():a[key], bv=(b[key]||"").toString().toLowerCase(); return av<bv?-1:av>bv?1:0; });
   if (view.sort.endsWith("-desc")) list.reverse();
   return list;
 }
 
-function render() {
-  const all = QUEUE.connections || [];
-  const by = s => all.filter(c => (c.status || "new") === s).length;
+function render(){
+  const all = QUEUE_DATA.connections;
+  const by = s => all.filter(c => statusOf(c) === s).length;
   document.getElementById("counts").innerHTML =
-    `<span class="count-pill">Total ${all.length}</span>` +
-    STATUSES.map(s => `<span class="count-pill">${s} ${by(s)}</span>`).join("");
+    `<span class="count-pill">Total ${all.length}</span>` + STATUSES.map(s=>`<span class="count-pill">${s} ${by(s)}</span>`).join("");
 
-  const chips = ["all", ...STATUSES];
-  document.getElementById("statusChips").innerHTML = chips.map(s =>
-    `<span class="chip ${view.status === s ? "active" : ""}" data-status="${s}">${s}</span>`).join("");
+  document.getElementById("statusChips").innerHTML = ["all",...STATUSES].map(s=>
+    `<span class="chip ${view.status===s?"active":""}" data-status="${s}">${s}</span>`).join("");
 
   const sel = document.getElementById("companyFilter");
-  const companies = [...new Set(all.map(c => c.company).filter(Boolean))].sort();
-  sel.innerHTML = `<option value="">All companies</option>` +
-    companies.map(c => `<option value="${esc(c)}" ${view.company === c ? "selected" : ""}>${esc(c)}</option>`).join("");
+  const companies = [...new Set(all.map(c=>c.company).filter(Boolean))].sort();
+  sel.innerHTML = `<option value="">All companies</option>` + companies.map(c=>`<option value="${esc(c)}" ${view.company===c?"selected":""}>${esc(c)}</option>`).join("");
   document.getElementById("sortBy").value = view.sort;
 
-  const list = visibleConnections();
-  const grid = document.getElementById("grid");
-  if (!list.length) { grid.innerHTML = `<div class="empty">No connections match this view.</div>`; return; }
-  grid.innerHTML = list.map(c => {
-    const st = c.status || "new";
-    const type = c.type || "other";
-    const chars = c.messageChars ?? (c.message ? c.message.length : 0);
-    const over = chars > 300;
-    return `
-    <div class="card ${st === "skipped" ? "dim" : ""}">
+  const list = visible(), grid = document.getElementById("grid");
+  grid.innerHTML = list.length ? list.map(c=>{
+    const st = statusOf(c), type = c.type||"other", chars = c.messageChars ?? (c.message?c.message.length:0), over = chars>300;
+    const btn = (s,label)=>`<button class="act ${st===s?"sel":""}" data-set="${s}" data-id="${esc(c.id)}">${label}</button>`;
+    return `<div class="card ${st==="skipped"?"dim":""}">
       <div class="card-head">
-        <div>
-          <div class="name">${esc(c.contactName)} <span class="status-tag s-${st}">${st}</span></div>
-          <div class="role">${esc(c.contactTitle)}${c.company ? " · " + esc(c.company) : ""}</div>
-        </div>
-        <span class="badge b-${type}">${esc(type.replace("_", " "))}</span>
+        <div><div class="name">${esc(c.contactName)} <span class="status-tag s-${st}">${st}</span></div>
+        <div class="role">${esc(c.contactTitle)}${c.company?" · "+esc(c.company):""}</div></div>
+        <span class="badge b-${type}">${esc(type.replace("_"," "))}</span>
       </div>
-      ${c.whyRelevant ? `<div class="why">${esc(c.whyRelevant)}</div>` : ""}
-      <div class="msg">${esc(c.message || "(no message drafted)")}
-        <div class="msg-meta">
-          <span class="chars ${over ? "over" : ""}">${chars}/300</span>
-          <button class="act" data-copy="${esc(c.id)}">Copy note</button>
-        </div>
-      </div>
+      ${c.whyRelevant?`<div class="why">${esc(c.whyRelevant)}</div>`:""}
+      <div class="msg">${esc(c.message||"(no message)")}
+        <div class="msg-meta"><span class="chars ${over?"over":""}">${chars}/300</span>
+        <button class="act" data-copy="${esc(c.id)}">Copy note</button></div></div>
       <div class="actions">
-        ${c.linkedinUrl ? `<a class="profile" href="${esc(c.linkedinUrl)}" target="_blank" rel="noopener"><button class="act primary">Open profile</button></a>` : ""}
-        <button class="act" data-set="reviewed" data-id="${esc(c.id)}">Mark reviewed</button>
-        <button class="act" data-set="sent" data-id="${esc(c.id)}">Mark sent</button>
-        <button class="act" data-set="skipped" data-id="${esc(c.id)}">Skip</button>
-      </div>
-    </div>`;
-  }).join("");
+        ${c.linkedinUrl?`<a class="profile" href="${esc(c.linkedinUrl)}" target="_blank" rel="noopener"><button class="act primary">Open profile</button></a>`:""}
+        ${btn("reviewed","Reviewed")} ${btn("sent","Sent")} ${btn("skipped","Skip")}
+      </div></div>`;
+  }).join("") : `<div class="empty">No connections match this view.</div>`;
 
-  grid.querySelectorAll("[data-copy]").forEach(b => {
-    const rec = list.find(x => x.id === b.getAttribute("data-copy"));
-    b.onclick = () => copyMsg(rec.message || "", b);
-  });
-  grid.querySelectorAll("[data-set]").forEach(b => {
-    b.onclick = () => setStatus(b.getAttribute("data-id"), b.getAttribute("data-set"));
-  });
+  grid.querySelectorAll("[data-copy]").forEach(b=>{ const r=list.find(x=>x.id===b.getAttribute("data-copy")); b.onclick=()=>{ robustCopy(r.message||"", "Note copied"); const o=b.textContent; b.textContent="Copied"; setTimeout(()=>b.textContent=o,1200); }; });
+  grid.querySelectorAll("[data-set]").forEach(b=>{ b.onclick=()=>setStatus(b.getAttribute("data-id"), b.getAttribute("data-set")); });
+
+  const n = Object.keys(pending).length;
+  document.getElementById("pendCount").textContent = n;
+  document.getElementById("savebar").classList.toggle("show", n>0);
+  const box = document.getElementById("cmdBox"); if (box && n>0) box.value = pendingCmd();
 }
 
-document.getElementById("statusChips").addEventListener("click", e => {
-  const s = e.target.getAttribute("data-status"); if (!s) return;
-  view.status = s; saveView(); render();
-});
-document.getElementById("companyFilter").addEventListener("change", e => { view.company = e.target.value; saveView(); render(); });
-document.getElementById("sortBy").addEventListener("change", e => { view.sort = e.target.value; saveView(); render(); });
+document.getElementById("statusChips").addEventListener("click", e=>{ const s=e.target.getAttribute("data-status"); if(!s) return; view.status=s; save(LS_VIEW,view); render(); });
+document.getElementById("companyFilter").addEventListener("change", e=>{ view.company=e.target.value; save(LS_VIEW,view); render(); });
+document.getElementById("sortBy").addEventListener("change", e=>{ view.sort=e.target.value; save(LS_VIEW,view); render(); });
+document.getElementById("copyUpdates").addEventListener("click", copyUpdates);
 
-loadQueue();
+render();
 </script>
 </body>
 </html>

@@ -6,9 +6,25 @@ This is the single source of truth for the user profile. Every skill reads from 
 
 ## Storage mechanism
 
-The profile is persisted in Claude's memory under the key `career_booster_profile`. When updating, always merge the changed fields into the existing profile. Never overwrite the whole profile in a single write — read first, patch, then write back.
+All Career Booster data lives in one **canonical per-user folder**, resolved at runtime — never hardcoded and never chosen by the user:
 
-Tag every write with `_lastUpdated: ISO8601 timestamp`.
+```
+<USER_HOME>/.career-booster/
+   ├─ career_booster_profile.json     # the profile (this schema)
+   └─ connections-queue.json          # the connection queue (see connection-queue-schema.md)
+```
+
+`<USER_HOME>` is resolved at setup via the Desktop Commander connector:
+- Windows: `$env:USERPROFILE` (e.g. `start_process("echo $env:USERPROFILE")`) → `%USERPROFILE%\.career-booster\`
+- macOS/Linux: `$HOME` → `~/.career-booster/`
+
+The hidden `.career-booster` folder is created automatically with Desktop Commander `create_directory` (idempotent). The user never creates or selects a folder — every user's home directory always exists, so this path is universal.
+
+The profile file is `career_booster_profile.json` in that folder. When updating, always merge changed fields into the existing profile — read first, patch, then write back. Never overwrite the whole profile in a single write. Tag every write with `_lastUpdated: ISO8601 timestamp`.
+
+The profile records its own storage location so every other skill and the dashboard read one value instead of resolving paths themselves:
+- `_storageDir` — absolute path to the canonical folder
+- `connectionQueuePath` — absolute path to `connections-queue.json` inside it
 
 ---
 
@@ -19,6 +35,8 @@ Tag every write with `_lastUpdated: ISO8601 timestamp`.
   "_version": "1.0",
   "_createdAt": "ISO8601",
   "_lastUpdated": "ISO8601",
+  "_storageDir": "string (absolute path to the canonical career-booster folder)",
+  "connectionQueuePath": "string (absolute path to connections-queue.json)",
 
   "personal": {
     "fullName": "string",

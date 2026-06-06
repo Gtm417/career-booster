@@ -1,7 +1,7 @@
 ---
 name: connection-dashboard
 description: |
-  Opens the persistent Connection Review Board — a live dashboard of all discovered LinkedIn connections, where the user reviews, copies notes, opens profiles, and marks status. Use when the user runs /connection-dashboard or says "open my connections board", "show my connection queue", "review my connections", "open the connection dashboard", "where are my daily connections", or "review board". Reads and writes connections-queue.json.
+  Opens the persistent Connection Review Board — a dashboard of all discovered LinkedIn connections, where the user reviews, copies notes, opens profiles, and marks status. Use when the user runs /connection-dashboard or says "open my connections board", "show my connection queue", "review my connections", "open the connection dashboard", "where are my daily connections", or "review board". Reads the queue and applies status changes the user pastes back.
 allowed-tools: [mcp__cowork__create_artifact, mcp__cowork__list_artifacts, mcp__cowork__update_artifact]
 ---
 
@@ -9,73 +9,81 @@ allowed-tools: [mcp__cowork__create_artifact, mcp__cowork__list_artifacts, mcp__
 
 ## Purpose
 
-Create (or refresh) a persistent Cowork artifact that renders `connections-queue.json` as a review board. Each card shows a contact's name, title, company, why-relevant, the drafted connection note (with copy button and character count), an "Open profile" link, and status buttons (Mark reviewed / Mark sent / Skip). The board filters by status and company, sorts, and writes status changes back to the queue file directly.
+Create (or refresh) a persistent Cowork artifact that renders the connection queue as a review board. Each card shows a contact's name, title, company, why-relevant, the drafted connection note (with copy button and character count), an "Open profile" link, and status buttons (Reviewed / Sent / Skip). The board filters by status and company, sorts, and shows live counts.
 
 The dashboard HTML is packaged with this skill at `references/dashboard.html`. This skill ships in the plugin; the **artifact instance** it creates is runtime and lives in the user's Cowork sidebar.
 
-## File access architecture
+## File access architecture (read first — this is non-obvious)
 
-The dashboard is a sandboxed page: it cannot use built-in file tools, only MCP tools via `callMcpTool`. Cowork's directory access does NOT expose callable file tools to artifacts, so the dashboard uses the **Desktop Commander** MCP connector (verified working), which exposes callable file tools:
+A Cowork artifact runs in a sandbox with hard limits, established empirically:
 
-- read: `mcp__Desktop_Commander__read_file({ path })` → returns `{ fileName, content }` where `content` is the file text **prefixed by a `[Reading N lines ...]` header that must be stripped** (the template's `extractQueue()` handles this — it slices from the first `{`).
-- write: `mcp__Desktop_Commander__write_file({ path, content, mode: "rewrite" })` → overwrites the file.
+1. `window.cowork.callMcpTool` works **only for hosted/cloud connectors**. Local connectors (Desktop Commander, any local filesystem MCP) return **400** — the sandbox refuses them. So the board **cannot read or write a local file**.
+2. The artifact API is exactly `callMcpTool`, `askClaude` (inference only), and `runScheduledTask` (no args). There is **no** function to send a message to chat or otherwise write state back.
 
-(The `linkedin-outreach` skill and the scheduled task do NOT use Desktop Commander — they read/write the queue through the agent's native file access. Desktop Commander exists solely to give the sandboxed artifact file access. Both touch the same `connections-queue.json`.)
+Therefore the board uses an **embed + paste** model:
+
+- **READ** — this skill reads `connections-queue.json` agent-side (built-in file access / Desktop Commander) and **bakes the `connections` array into the HTML at build time**. The board renders from embedded data; it makes no file calls.
+- **WRITE** — the board cannot persist. Status changes are staged in `localStorage` and exported as a one-line command (`Apply status changes to my connection queue: <id>=<status>, …`) that the user copies and **pastes into chat**. This skill (see "Applying pasted status changes") then writes them to the queue.
+
+Do NOT reintroduce `callMcpTool` file reads/writes against a local connector — it returns 400. This was tested and confirmed.
 
 ## Preconditions
 
-1. **Desktop Commander connector enabled.** If its tools aren't present, the dashboard can't read/write — report and stop, or render the queue in chat and update statuses via conversation as a fallback.
-2. **Write line limit.** Desktop Commander's `fileWriteLineLimit` defaults to 50. A full-file rewrite of the queue exceeds this once there are ~4+ connections. Before relying on write-back, raise it via `set_config_value({ key: "fileWriteLineLimit", value: 2000 })`, or the status writes may be truncated.
-3. **Profile + queue exist.** The queue path comes from the profile's `connectionQueuePath`. If there's no profile, route the user to `/setup`; if the queue file is missing, `/find-connections` or `/setup-daily-connections` creates it.
+1. **Profile + queue exist.** The queue path is the profile's `connectionQueuePath` (set by `profile-setup`, e.g. `<USER_HOME>/.career-booster/connections-queue.json`). No profile → route to `/setup`. Missing queue file → `/find-connections` or `/setup-daily-connections` creates it.
 
-## Step 1: Probe and verify (REQUIRED)
+## Step 1: Read the queue agent-side
 
-1. Call `mcp__Desktop_Commander__read_file({ path: "<queue path>" })` once in chat. Confirm it resolves and returns `{ fileName, content }` with the file text inside `content`.
-2. Confirm `extractQueue()` parses it (it strips the `[Reading ...]` header and JSON-parses). If Desktop Commander's response shape has changed, adjust `extractQueue()`.
-3. Confirm `write_file` resolves and `fileWriteLineLimit` is raised (precondition 2).
-
-Do not skip this — a wrong tool name or unhandled response shape silently breaks the board.
+Load the profile, read `connectionQueuePath`, and read the queue file with your built-in file access (or Desktop Commander `read_file` — agent-side it works fine). Parse the JSON; keep the `connections` array and the absolute path.
 
 ## Step 2: Build the artifact HTML
 
-1. Load the profile and read `connectionQueuePath` (set by `profile-setup`, e.g. `<USER_HOME>/.career-booster/connections-queue.json`). If no profile exists, route the user to `/setup` first.
-2. Read `references/dashboard.html` from this skill.
-3. Substitute `__QUEUE_PATH__` with the profile's `connectionQueuePath` value (never a hardcoded path).
+1. Read `references/dashboard.html` from this skill.
+2. Substitute `__QUEUE_PATH__` with `connectionQueuePath`. **Escape backslashes** for the JS string literal (e.g. `C:\\Users\\me\\.career-booster\\connections-queue.json`).
+3. Substitute `__CONNECTIONS_JSON__` with `JSON.stringify(connections)` (the array only). If empty, use `[]`.
 4. Write the substituted document to a scratch file.
 
 ## Step 3: Create or update the artifact
 
-- Call `list_artifacts`. If an artifact with id `connection-review-board` exists, use `update_artifact`; otherwise `create_artifact`.
+- Call `list_artifacts`. If `connection-review-board` exists, use `update_artifact`; otherwise `create_artifact`.
 - `id`: `connection-review-board`
 - `html_path`: the scratch file from Step 2
-- `description`: `Live review board for daily-discovered LinkedIn connections, backed by connections-queue.json.`
-- `mcp_tools`: `["mcp__Desktop_Commander__read_file", "mcp__Desktop_Commander__write_file"]` — the only tools the HTML calls.
+- `description`: `Review board for discovered LinkedIn connections (embedded snapshot of connections-queue.json).`
+- `mcp_tools`: `[]` — the board calls no MCP tools.
+
+## Applying pasted status changes
+
+When the user pastes a command like `Apply status changes to my connection queue: li-2026-06-06-001=sent, li-2026-06-06-003=skipped`:
+
+1. Read the queue at `connectionQueuePath`.
+2. For each `id=status` pair, set that record's `status`; if `sent`, also set `dateSent` to today. Validate ids exist and statuses are one of `new | reviewed | sent | skipped`.
+3. Update `_lastUpdated` and write back (read-modify-write; never overwrite blindly).
+4. Rebuild the artifact (Step 2–3) so it shows the saved state with no pending changes.
+5. For any record moved to `sent`, map it into the profile's `outreach[]` per `references/connection-queue-schema.md`.
 
 ## Output
 
-Confirm: the board is open in the sidebar, how many connections it currently shows (by status), and the queue path it is bound to.
+Confirm: the board is open in the sidebar, how many connections it shows (by status), and the queue path it reflects. Remind the user that status changes are saved by pasting the board's "Copy update for Claude" command into chat.
 
 ## Notes on behavior
 
-- The dashboard is the **sole writer** of the queue file. It uses single-record read-modify-write on each status change (re-reads fresh, mutates one record, writes back) to avoid clobbering appends from the daily task.
-- It does **not** send anything. "Open profile" opens LinkedIn in the browser; the user pastes the copied note and sends manually (Phase 4 will add assisted send).
-- The artifact has a built-in Reload button in its header — the HTML must not add its own.
-- View preferences (filter, company, sort) persist in `localStorage`.
+- The board does **not** send anything. "Open profile" opens LinkedIn; the user pastes the copied note and sends manually (Phase 4 will add assisted send).
+- The board is a snapshot. After discovery runs or after you apply pasted changes, re-run `/connection-dashboard` to refresh the embedded data.
+- The artifact has a built-in Reload button — the HTML must not add its own.
+- View preferences and pending (unsaved) status changes persist in `localStorage`, so unsaved changes survive a reload until pasted.
 
 ## Next step
 
 After opening:
 
-"Your Connection Review Board is open. Each morning's discovered connections appear here automatically (if you've run `/setup-daily-connections`). For each one: review the note, click **Open profile**, **Copy note**, send the request on LinkedIn, then **Mark sent** here. Run `/tracker` to see committed outreach logged to your profile."
+"Your Connection Review Board is open. For each connection: review the note, click **Open profile**, **Copy note**, send the request on LinkedIn, then mark **Sent** here. When you've marked some, click **Copy update for Claude** and paste it to me — I'll save the statuses. Run `/tracker` to see sent outreach logged to your profile."
 
 ## Failure handling
 
 Apply the appropriate protocol from `references/connector-failure-protocols.md`. Specific cases:
 
-- **Desktop Commander tools not found:** the connector isn't enabled. Report it and fall back to rendering the queue in chat and updating statuses via conversation until it's available.
-- **Status writes silently truncate / file corrupted after a write:** `fileWriteLineLimit` is too low — raise it via `set_config_value({ key: "fileWriteLineLimit", value: 2000 })` and re-save.
-- **`write_file` access denied / path outside allowed directory:** Desktop Commander's `allowedDirectories` excludes the queue path. Report the path that must be allowed.
-- **Queue file missing:** route the user to `/find-connections` or `/setup-daily-connections`.
-- **create_artifact unavailable (non-Cowork environment):** report that the live dashboard requires Cowork, and offer a chat-rendered table of the queue instead.
+- **No profile / `connectionQueuePath` missing:** route the user to `/setup`. Do not invent a path.
+- **Queue file missing or empty:** build the board with `[]` (it shows "No connections"), and tell the user to run `/find-connections` or `/setup-daily-connections`.
+- **create_artifact unavailable (non-Cowork environment):** report that the board requires Cowork, and offer a chat-rendered table of the queue instead.
+- **Pasted command references unknown ids:** apply the valid ones, report the unknown ids rather than failing the whole batch.
 
 Never abort silently — report what failed and the alternative path.

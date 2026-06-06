@@ -9,9 +9,20 @@ allowed-tools: [Read, Write]
 
 ## Profile schema
 
-Load the user profile from memory key `career_booster_profile`. Refer to `references/profile-schema.md` for the complete field definitions, versioning rules, conflict resolution, and gap tracking rules. Write all collected data to the schema structure defined there. Never invent fields outside it.
+Load the user profile from `career_booster_profile.json` in the canonical storage folder (see "Storage location" below and `references/profile-schema.md`). Refer to the schema for the complete field definitions, versioning rules, conflict resolution, and gap tracking rules. Write all collected data to the schema structure defined there. Never invent fields outside it.
 
 Run this skill on first use or when the user explicitly requests a profile rebuild.
+
+## Storage location (resolve first — the user chooses nothing)
+
+Before collecting data, establish the canonical per-user storage folder via the Desktop Commander connector:
+
+1. Resolve `<USER_HOME>`: on Windows `start_process("echo $env:USERPROFILE")`; on macOS/Linux `echo $HOME`. Take the trimmed output.
+2. Build `storageDir = <USER_HOME>/.career-booster` (i.e. `%USERPROFILE%\.career-booster` on Windows, `~/.career-booster` on Unix).
+3. Create it (idempotent): `create_directory(storageDir)`.
+4. The profile file is `storageDir/career_booster_profile.json`; the connection queue is `storageDir/connections-queue.json`.
+
+Record both absolute paths in the profile: set `_storageDir` and `connectionQueuePath`. Every other skill and the dashboard read these values rather than resolving paths themselves. Never hardcode a path; never ask the user where to put files.
 
 ## Behavior
 
@@ -53,9 +64,11 @@ If any required field is missing after the full intake, surface the gaps clearly
 
 ## Storage
 
-After confirming all collected data with the user, write the profile to the memory file `career_booster_profile.json` in the working folder. Structure it exactly as defined in `references/profile-schema.md`. Set `_version: "1.0"`, `_createdAt`, and `_lastUpdated` to the current ISO8601 timestamp.
+After confirming all collected data with the user, write the profile to `career_booster_profile.json` in the resolved `storageDir` (see "Storage location"). Structure it exactly as defined in `references/profile-schema.md`. Set `_version: "1.0"`, `_createdAt`, `_lastUpdated` (current ISO8601), and the storage fields `_storageDir` and `connectionQueuePath` (= `storageDir/connections-queue.json`).
 
-If a profile already exists (this is a rebuild), read the existing file first. Merge the new data using the conflict resolution rules in `references/profile-schema.md`. Never overwrite the full file — patch and write back.
+Also create an empty connection queue at `connectionQueuePath` if it does not exist, using the skeleton in `references/connection-queue-schema.md`, so downstream skills have a target.
+
+If a profile already exists (this is a rebuild), read the existing file from `storageDir` first. Merge the new data using the conflict resolution rules in `references/profile-schema.md`. Never overwrite the full file — patch and write back.
 
 ## Confirmation and next step
 

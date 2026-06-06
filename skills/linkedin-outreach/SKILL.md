@@ -7,9 +7,13 @@ allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page
 
 # LinkedIn outreach
 
+> **File access:** This skill reads and writes the connection queue using your built-in file access. The queue path is **not** hardcoded — read it from the profile's `connectionQueuePath` field (set by `profile-setup` to `<USER_HOME>/.career-booster/connections-queue.json`). If no profile exists, route the user to `/setup` first.
+
 ## Profile schema
 
 Load the user profile from memory key `career_booster_profile`. Refer to `references/profile-schema.md` for the complete field definitions, CV versioning rules, job ID format, status transition rules, conflict resolution, and gap tracking rules. Never invent fields outside the schema. Always merge changes rather than overwriting; always update `_lastUpdated` on every write.
+
+The connection queue (`connections-queue.json`) is a separate operational store defined in `references/connection-queue-schema.md`. It is the staging surface for discovered connections and the review dashboard; the profile's `outreach[]` array remains the canonical record for sent connections.
 
 
 
@@ -34,6 +38,16 @@ For each target, note:
 - Company
 - Mutual connections (if any)
 - Why they're relevant
+
+### Step 1.5: Load queue config and dedup set
+
+Read the connection queue at the profile's `connectionQueuePath` (see `references/connection-queue-schema.md` for shape). Load the profile first to get that path.
+
+- If it does not exist, create it from the skeleton with `config.dailyTarget` = 5.
+- Read `config.dailyTarget` — this is the number of NEW contacts to surface this run. Read `config.targetRoles` / `config.targetCompanies` if set; otherwise fall back to the profile's `targets.roles` and industries/companies of interest.
+- Load the existing `connections` array and build a set of **normalized** `linkedinUrl` values already present (lowercase, strip trailing slash, query, and fragment). This is the dedup set: never surface anyone already in the queue, in ANY status.
+
+Limit the targets carried into Step 2 to at most `config.dailyTarget` new (non-duplicate) contacts.
 
 ### Step 2: Draft connection requests
 
@@ -66,6 +80,25 @@ For each contact:
 
 Present all messages for user review before any action.
 
+### Step 5: Persist to the connection queue
+
+For each contact identified and drafted this run that is NOT in the dedup set:
+
+1. Build a connection record per `references/connection-queue-schema.md`. Generate `id` as `li-<dateFound>-NNN` (sequence continuing from the highest existing index for today). Set `status: "new"`, `dateFound` = today, `dateSent: null`, and `messageChars` = the exact character count of `message`.
+2. Map `type` to the profile outreach enum (`hiring_manager | recruiter | peer | alumni | other`) based on the priority tier the contact came from in Step 1.
+3. Append all new records to `connections`. Never overwrite existing records.
+4. Update `_lastUpdated`. Use read-modify-write: read the full file, append, write back the whole object to `connectionQueuePath` using your file access.
+5. Report: "Added N new connections to the queue (M skipped as duplicates). Queue total: T."
+
+Persistence is non-destructive — it never sends. Do not gate this step on confirmation.
+
+### Execution context: interactive vs scheduled
+
+This skill runs in two contexts:
+
+- **Interactive** (user typed `/find-connections`): present the drafted contacts for review (Step 4), then persist to the queue (Step 5).
+- **Scheduled** (daily task via `setup-daily-connections`): no user is present. Skip the Step 4 review presentation, persist directly with status `new`, emit the one-line summary, and never attempt to send.
+
 ## Sending
 
 Never send a connection request or message without explicit user confirmation. For each contact, ask: "Send this connection request to [Name] at [Company]?" and wait for yes/no.
@@ -82,4 +115,9 @@ After outreach messages are drafted and confirmed:
 
 ## Failure handling
 
-Apply the appropriate protocol from `references/connector-failure-protocols.md` if any connector or file read fails during this skill. Never abort silently — always report what failed, what succeeded, and offer an alternative path.
+Apply the appropriate protocol from `references/connector-failure-protocols.md` if any connector or file read fails during this skill. Never abort silently — always report what failed, what succeeded, and offer an alternative path. Specific cases for the queue persistence step:
+
+- **Queue file unreadable / corrupt JSON:** do not overwrite. Report the corruption, write findings to a sidecar `connections-queue.recovered.json`, and stop. Never silently reset the queue.
+- **No profile / `connectionQueuePath` missing:** the user hasn't run `/setup`. Route them to `/setup` (it creates the folder and queue), then retry. Do not invent a path.
+- **Claude in Chrome / LinkedIn failure mid-run:** persist whatever was successfully gathered before the failure; report partial success (X found, Y persisted) and what failed.
+- **Dedup ambiguity (same person, different URL):** treat distinct normalized URLs as distinct people; note possible duplicates in the summary rather than auto-merging.

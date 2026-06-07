@@ -22,23 +22,23 @@ A Cowork artifact runs in a sandbox with hard limits, established empirically:
 
 Therefore the board uses an **embed + paste** model:
 
-- **READ** — this skill reads `connections-queue.json` agent-side (built-in file access / Desktop Commander) and **bakes the `connections` array into the HTML at build time**. The board renders from embedded data; it makes no file calls.
+- **READ** — this skill reads `connections-queue.json` agent-side with built-in file access (it's inside the connected workspace folder) and **bakes the `connections` array into the HTML at build time**. The board renders from embedded data; it makes no file calls.
 - **WRITE** — the board cannot persist. Status changes are staged in `localStorage` and exported as a one-line command (`Apply status changes to my connection queue: <id>=<status>, …`) that the user copies and **pastes into chat**. This skill (see "Applying pasted status changes") then writes them to the queue.
 
 Do NOT reintroduce `callMcpTool` file reads/writes against a local connector — it returns 400. This was tested and confirmed.
 
 ## Preconditions
 
-1. **Profile + queue exist.** The queue path is the profile's `connectionQueuePath` (set by `profile-setup`, e.g. `<USER_HOME>/.career-booster/connections-queue.json`). No profile → route to `/setup`. Missing queue file → `/find-connections` or `/setup-daily-connections` creates it.
+1. **Profile + queue exist.** The queue path is the profile's `connectionQueuePath` (set by `profile-setup`, e.g. `<WORKSPACE>/career-booster/connections-queue.json`). No profile → route to `/setup`. Missing queue file → `/find-connections` or `/setup-daily-connections` creates it.
 
 ## Step 1: Read the queue agent-side
 
-Load the profile, read `connectionQueuePath`, and read the queue file with your built-in file access (or Desktop Commander `read_file` — agent-side it works fine). Parse the JSON; keep the `connections` array and the absolute path.
+Load the profile, read `connectionQueuePath`, and read the queue file with your built-in file access (it's in the connected workspace folder). Parse the JSON; keep the `connections` array and the absolute path.
 
 ## Step 2: Build the artifact HTML
 
 1. Read `references/dashboard.html` from this skill.
-2. Substitute `__QUEUE_PATH__` with `connectionQueuePath`. **Escape backslashes** for the JS string literal (e.g. `C:\\Users\\me\\.career-booster\\connections-queue.json`).
+2. Substitute `__QUEUE_PATH__` with `connectionQueuePath`. **Escape backslashes** for the JS string literal (e.g. `C:\\Users\\me\\Documents\\…\\career-booster\\connections-queue.json`).
 3. Substitute `__CONNECTIONS_JSON__` with `JSON.stringify(connections)` (the array only). If empty, use `[]`.
 4. Write the substituted document to a scratch file.
 

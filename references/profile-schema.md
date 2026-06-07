@@ -6,25 +6,23 @@ This is the single source of truth for the user profile. Every skill reads from 
 
 ## Storage mechanism
 
-All Career Booster data lives in one **canonical per-user folder**, resolved at runtime — never hardcoded and never chosen by the user:
+All Career Booster data lives in a `career-booster/` subfolder of the **connected workspace folder** (the project folder the user has connected to Cowork):
 
 ```
-<USER_HOME>/.career-booster/
+<WORKSPACE>/career-booster/
    ├─ career_booster_profile.json     # the profile (this schema)
    └─ connections-queue.json          # the connection queue (see connection-queue-schema.md)
 ```
 
-`<USER_HOME>` is resolved at setup via the Desktop Commander connector:
-- Windows: `$env:USERPROFILE` (e.g. `start_process("echo $env:USERPROFILE")`) → `%USERPROFILE%\.career-booster\`
-- macOS/Linux: `$HOME` → `~/.career-booster/`
-
-The hidden `.career-booster` folder is created automatically with Desktop Commander `create_directory` (idempotent). The user never creates or selects a folder — every user's home directory always exists, so this path is universal.
+Rationale: the agent's built-in Read/Write tools can only reach **connected folders**. The workspace folder is always reachable, so storing data here requires **no special connector** (no Desktop Commander, no filesystem MCP). The user does not pick or create a folder — `profile-setup` creates `career-booster/` inside the already-connected workspace with native file tools.
 
 The profile file is `career_booster_profile.json` in that folder. When updating, always merge changed fields into the existing profile — read first, patch, then write back. Never overwrite the whole profile in a single write. Tag every write with `_lastUpdated: ISO8601 timestamp`.
 
 The profile records its own storage location so every other skill and the dashboard read one value instead of resolving paths themselves:
-- `_storageDir` — absolute path to the canonical folder
+- `_storageDir` — absolute path to the `career-booster/` folder
 - `connectionQueuePath` — absolute path to `connections-queue.json` inside it
+
+(Earlier designs used `~/.career-booster/` via Desktop Commander; that was reverted because native file tools can't reach paths outside connected folders, so it failed in environments without Desktop Commander.)
 
 ---
 

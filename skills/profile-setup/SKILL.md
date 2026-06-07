@@ -15,14 +15,13 @@ Run this skill on first use or when the user explicitly requests a profile rebui
 
 ## Storage location (resolve first — the user chooses nothing)
 
-Before collecting data, establish the canonical per-user storage folder via the Desktop Commander connector:
+Before collecting data, establish the storage folder inside the **connected workspace folder** using your built-in file tools (no Desktop Commander, no home-dir resolution):
 
-1. Resolve `<USER_HOME>`: on Windows `start_process("echo $env:USERPROFILE")`; on macOS/Linux `echo $HOME`. Take the trimmed output.
-2. Build `storageDir = <USER_HOME>/.career-booster` (i.e. `%USERPROFILE%\.career-booster` on Windows, `~/.career-booster` on Unix).
-3. Create it (idempotent): `create_directory(storageDir)`.
-4. The profile file is `storageDir/career_booster_profile.json`; the connection queue is `storageDir/connections-queue.json`.
+1. `storageDir = <WORKSPACE>/career-booster`, where `<WORKSPACE>` is the connected workspace/project folder (your current working folder).
+2. Create the `career-booster/` subfolder if it doesn't exist (a plain file write into it creates the path).
+3. The profile file is `storageDir/career_booster_profile.json`; the connection queue is `storageDir/connections-queue.json`.
 
-Record both absolute paths in the profile: set `_storageDir` and `connectionQueuePath`. Every other skill and the dashboard read these values rather than resolving paths themselves. Never hardcode a path; never ask the user where to put files.
+Record both absolute paths in the profile: set `_storageDir` and `connectionQueuePath`. Every other skill and the dashboard read these values rather than resolving paths themselves. Never hardcode a path; never ask the user where to put files. The workspace folder is reachable by native Read/Write, so this works without any filesystem connector.
 
 ## Behavior
 

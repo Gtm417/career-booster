@@ -9,7 +9,7 @@ allowed-tools: [mcp__scheduled-tasks__create_scheduled_task, mcp__scheduled-task
 
 ## Profile schema
 
-Load the user profile from memory key `career_booster_profile`. Refer to `references/profile-schema.md` for field definitions. This skill reads `targets.roles`, `targets.locations`, and `targets.industries` to seed the daily search. Never invent fields. Always update `_lastUpdated` on any write.
+Load the user profile from `career_booster_profile.json` in the workspace `career-booster/` folder (see `references/profile-schema.md`). This skill reads `connectionQueuePath`, `targets.roles`, `targets.locations`, and `targets.industries` to seed the daily search. Never invent fields. Always update `_lastUpdated` on any write.
 
 ## Purpose
 
@@ -21,8 +21,8 @@ This skill provisions a **runtime** scheduled task; the task itself is not part 
 
 Before provisioning, confirm:
 
-1. **Connectors connected:** Claude in Chrome (Browser) and Local file system. If either is missing, tell the user which to connect and stop — a scheduled run cannot prompt for connectors.
-2. **Profile populated:** `targets.roles` and `targets.locations` must be non-empty. If empty, instruct the user to run `/setup` first and stop.
+1. **Browser connected** (Claude in Chrome) for live LinkedIn search, OR accept the WebSearch fallback. The **workspace folder must stay connected** so the scheduled run can read/write the queue with native file tools (no filesystem connector needed). A scheduled run can't prompt for connectors, so confirm these now.
+2. **Profile populated:** `targets.roles` and `targets.locations` must be non-empty, and `connectionQueuePath` must be set. If empty, instruct the user to run `/setup` first and stop.
 
 ## Inputs (optional arguments)
 
@@ -64,10 +64,10 @@ Call `create_scheduled_task` with:
 ```
 Run the Career Booster `linkedin-outreach` skill in UNATTENDED scheduled mode.
 
-1. Load the user profile `career_booster_profile.json` from <USER_HOME>/.career-booster/ and read `connectionQueuePath`. Read the queue at that path: config.dailyTarget (fallback 5), config.targetRoles, config.targetCompanies. If the profile or queue is missing or corrupt, stop and report — do not reset it.
+1. Load the user profile `career_booster_profile.json` from the connected workspace folder's `career-booster/` subfolder and read `connectionQueuePath`. Read the queue at that path: config.dailyTarget (fallback 5), config.targetRoles, config.targetCompanies. If the profile or queue is missing or corrupt, stop and report — do not reset it.
 2. Use the profile for target roles, locations, and industries.
-3. Using Claude in Chrome, search LinkedIn for up to config.dailyTarget NEW contacts (hiring managers, recruiters, peers, alumni) matching the targets, EXCLUDING anyone whose normalized linkedinUrl is already in the queue (any status).
-4. For each new contact, draft a personalized connection note under 300 characters and capture name, title, company, profile URL, why-relevant, and type.
+3. Search for up to config.dailyTarget NEW contacts (hiring managers, recruiters, peers, alumni) matching the targets, EXCLUDING anyone whose normalized linkedinUrl is already in the queue (any status). Prefer Claude in Chrome (tag source "chrome"); if the browser isn't connected, fall back to WebSearch `site:linkedin.com/in` (tag source "websearch").
+4. For each new contact, draft a personalized connection note under 300 characters and capture name, title, company, profile URL, why-relevant, type, source, and titleVerified. Do not assert a title you didn't read off the profile — set titleVerified false and flag it in why-relevant if unverified.
 5. Append each as a new record (status "new") to the queue at connectionQueuePath, using read-modify-write. Generate ids as li-<today>-NNN. Update _lastUpdated.
 6. DO NOT send any connection requests or messages. Discovery and persistence only.
 7. Emit a one-line summary: "Added N new connections (M skipped as duplicates). Queue total: T." If notifications are on, this is the run notification.

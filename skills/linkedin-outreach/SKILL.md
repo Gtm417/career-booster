@@ -2,16 +2,16 @@
 name: linkedin-outreach
 description: |
   Finds relevant LinkedIn contacts and drafts personalized connection requests and follow-up messages. Use when the user runs /find-connections or says "find recruiters on LinkedIn", "who should I connect with", "find hiring managers", "find people at this company", "draft a LinkedIn connection message", "find contacts for this role", or "help me with LinkedIn outreach". Requires a target company, role, or industry.
-allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input]
+allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input, WebSearch]
 ---
 
 # LinkedIn outreach
 
-> **File access:** This skill reads and writes the connection queue using your built-in file access. The queue path is **not** hardcoded — read it from the profile's `connectionQueuePath` field (set by `profile-setup` to `<USER_HOME>/.career-booster/connections-queue.json`). If no profile exists, route the user to `/setup` first.
+> **File access:** This skill reads and writes the connection queue using your built-in file access. The queue path is **not** hardcoded — read it from the profile's `connectionQueuePath` field (set by `profile-setup` to `<WORKSPACE>/career-booster/connections-queue.json`, inside the connected workspace folder). No filesystem connector is needed. If no profile exists, route the user to `/setup` first.
 
 ## Profile schema
 
-Load the user profile from memory key `career_booster_profile`. Refer to `references/profile-schema.md` for the complete field definitions, CV versioning rules, job ID format, status transition rules, conflict resolution, and gap tracking rules. Never invent fields outside the schema. Always merge changes rather than overwriting; always update `_lastUpdated` on every write.
+Load the user profile from `career_booster_profile.json` in the workspace `career-booster/` folder (see `references/profile-schema.md` for the path, field definitions, CV versioning rules, job ID format, status transition rules, conflict resolution, and gap tracking rules). Never invent fields outside the schema. Always merge changes rather than overwriting; always update `_lastUpdated` on every write.
 
 The connection queue (`connections-queue.json`) is a separate operational store defined in `references/connection-queue-schema.md`. It is the staging surface for discovered connections and the review dashboard; the profile's `outreach[]` array remains the canonical record for sent connections.
 
@@ -23,31 +23,37 @@ Identify the right people to connect with on LinkedIn and write personalized, hu
 
 ## Process
 
-### Step 1: Identify targets
+### Step 1.5: Load queue config, count, and dedup set (do this first)
 
-Based on the user's target role, industry, and any companies of interest, identify relevant LinkedIn contacts to approach:
+Load the profile to get `connectionQueuePath`, then read the connection queue (see `references/connection-queue-schema.md`).
 
-Priority order:
-1. **Hiring managers** — people with titles like "Head of", "Director of", "VP of", or "Lead" in the relevant department
-2. **Recruiters** — internal recruiters or HR at target companies (title: "Recruiter", "Talent Acquisition", "HR Manager")
-3. **Peers** — people in the same role at target companies (potential referrers)
-4. **Alumni** — people who share a university or previous employer with the user
+- If the queue does not exist, create it from the skeleton with `config.dailyTarget` = 5.
+- **How many to find this run (`N`):** if the user passed a count in the command (e.g. `/find-connections 2 …`), use it. Otherwise use `config.dailyTarget`. Clamp to 1–15.
+- Read `config.targetRoles` / `config.targetCompanies` if set; otherwise fall back to the profile's `targets.roles`, `targets.locations`, and industries/companies of interest.
+- Build the dedup set: **normalized** `linkedinUrl` values already in the queue (lowercase, strip trailing slash, query, fragment). Never surface anyone already present, in ANY status.
 
-For each target, note:
-- Name and title
-- Company
-- Mutual connections (if any)
-- Why they're relevant
+### Step 1: Identify targets (multi-channel)
 
-### Step 1.5: Load queue config and dedup set
+Pick the discovery channel by availability:
 
-Read the connection queue at the profile's `connectionQueuePath` (see `references/connection-queue-schema.md` for shape). Load the profile first to get that path.
+- **Preferred — Claude in Chrome** (if the browser connector is connected and logged into LinkedIn): run a LinkedIn people search (`/search/results/people/?keywords=…`) using role + location + target companies. Chrome sees degree (1st/2nd/3rd), mutual connections, and live profile detail. Tag these contacts `source: "chrome"`.
+- **Fallback — WebSearch** (if Chrome is unavailable): query `site:linkedin.com/in <role> <location> <company>`. This is broad and login-free but shallow — it returns only Google-indexed snippets, no degree/mutuals, and titles may be stale. Tag these `source: "websearch"`.
 
-- If it does not exist, create it from the skeleton with `config.dailyTarget` = 5.
-- Read `config.dailyTarget` — this is the number of NEW contacts to surface this run. Read `config.targetRoles` / `config.targetCompanies` if set; otherwise fall back to the profile's `targets.roles` and industries/companies of interest.
-- Load the existing `connections` array and build a set of **normalized** `linkedinUrl` values already present (lowercase, strip trailing slash, query, and fragment). This is the dedup set: never surface anyone already in the queue, in ANY status.
+State which channel you used. Domain matters: a generic role keyword (e.g. "architect") may surface the wrong field (software vs building) — refine with domain terms or target known firms by name.
 
-Limit the targets carried into Step 2 to at most `config.dailyTarget` new (non-duplicate) contacts.
+Priority order for who to surface:
+1. **Hiring managers** — "Head of", "Director of", "VP of", "Lead" in the relevant department
+2. **Recruiters** — internal recruiters / talent acquisition / HR at target companies
+3. **Peers** — same role at target companies (potential referrers)
+4. **Alumni** — shared university or previous employer
+
+For each target capture: name, title, company, profile URL, mutual connections (Chrome only), why relevant, `source`. Carry at most `N` new (non-duplicate) contacts into Step 2.
+
+### Step 1.7: Verify titles (correctness gate)
+
+Do NOT assert a `contactTitle` you have not read off the actual profile:
+- **Chrome:** if the title isn't clearly visible in the search card, open the profile (`navigate` + `get_page_text`) and read it. Set `titleVerified: true`.
+- **WebSearch:** snippet titles are unverified. Either open the profile in Chrome to confirm (`titleVerified: true`), or keep the snippet title with `titleVerified: false` and add "(title unverified — from search snippet)" to `whyRelevant`. Never state an unverified title as fact inside the outreach `message`.
 
 ### Step 2: Draft connection requests
 
@@ -84,7 +90,7 @@ Present all messages for user review before any action.
 
 For each contact identified and drafted this run that is NOT in the dedup set:
 
-1. Build a connection record per `references/connection-queue-schema.md`. Generate `id` as `li-<dateFound>-NNN` (sequence continuing from the highest existing index for today). Set `status: "new"`, `dateFound` = today, `dateSent: null`, and `messageChars` = the exact character count of `message`.
+1. Build a connection record per `references/connection-queue-schema.md`. Generate `id` as `li-<dateFound>-NNN` (sequence continuing from the highest existing index for today). Set `status: "new"`, `dateFound` = today, `dateSent: null`, `messageChars` = the exact character count of `message`, plus `source` (`chrome`/`websearch`) and `titleVerified` (from Step 1.7).
 2. Map `type` to the profile outreach enum (`hiring_manager | recruiter | peer | alumni | other`) based on the priority tier the contact came from in Step 1.
 3. Append all new records to `connections`. Never overwrite existing records.
 4. Update `_lastUpdated`. Use read-modify-write: read the full file, append, write back the whole object to `connectionQueuePath` using your file access.

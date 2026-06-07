@@ -8,10 +8,10 @@ It is a plain file in the canonical career-booster folder. The agent-side skills
 
 ## Storage
 
-**Location:** the canonical per-user folder, alongside the profile —
-`<USER_HOME>/.career-booster/connections-queue.json` (`%USERPROFILE%\.career-booster\` on Windows).
+**Location:** the `career-booster/` subfolder of the connected workspace folder, alongside the profile —
+`<WORKSPACE>/career-booster/connections-queue.json`.
 
-Never hardcode this path. Read it from the profile's `connectionQueuePath` field (set by `profile-setup`). If the profile or that field is missing, the user hasn't run `/setup` yet — route them there. The folder is created by `profile-setup`; the queue file is created there on first use.
+Never hardcode this path. Read it from the profile's `connectionQueuePath` field (set by `profile-setup`). If the profile or that field is missing, the user hasn't run `/setup` yet — route them there. The folder is created by `profile-setup`; the queue file is created there on first use. Because it lives inside a connected folder, it is reachable by native Read/Write — no filesystem connector required.
 
 Always read-modify-write the whole object; never overwrite blindly. Update `_lastUpdated` on every write.
 
@@ -47,7 +47,9 @@ Always read-modify-write the whole object; never overwrite blindly. Update `_las
   "messageChars": "integer",
   "status": "new | reviewed | approved | sent | skipped",
   "dateFound": "YYYY-MM-DD",
-  "dateSent": "YYYY-MM-DD | null"
+  "dateSent": "YYYY-MM-DD | null",
+  "source": "chrome | websearch",
+  "titleVerified": "boolean (true only if contactTitle was read off the actual profile page)"
 }
 ```
 
@@ -60,6 +62,8 @@ Always read-modify-write the whole object; never overwrite blindly. Update `_las
 - **status**: starts at `new`. Lifecycle: `new → reviewed → approved → sent` or `→ skipped`. The dashboard advances status; discovery only ever writes `new`.
 - **Dedup key**: normalized `linkedinUrl` — lowercase, strip trailing slash, strip query string and fragment. A contact already present in ANY status is never re-added.
 - **Never overwrite** existing records on append. Discovery appends only.
+- **source**: which channel found the contact — `chrome` (Claude in Chrome, live profile) or `websearch` (Google/Bing index, may be stale).
+- **titleVerified**: `true` only if `contactTitle` was read directly off the profile page. If a title came from a search snippet and wasn't profile-confirmed, set `false` and note it in `whyRelevant`. Never assert an unverified title as fact in the outreach `message`.
 
 ---
 

@@ -82,3 +82,28 @@ When a connection reaches `sent`, create/update the corresponding `profile.outre
 | dateSent | connectionRequestDate |
 
 The profile `outreach[]` id uses its own format (`YYYYMMDD-{name-slug}`); generate it at map time.
+
+---
+
+## Dashboard artifact id (per workspace)
+
+Connection boards are **per workspace** — each connected project folder gets its own review board so separate searches (e.g. for different people) never overwrite each other. Both `connection-dashboard` (which builds the board) and `linkedin-outreach` (which refreshes it after discovery) must derive the **same** id from the same input, deterministically:
+
+- **Input:** the workspace folder — the parent directory of the `career-booster/` folder that holds `connectionQueuePath`. (For `<WS>/career-booster/connections-queue.json`, the workspace folder is `<WS>`.)
+- **Slug:** take the workspace folder's base name, lowercase it, replace every run of non-alphanumeric characters with a single hyphen, and trim leading/trailing hyphens.
+- **Artifact id:** `connection-review-board-<slug>`.
+
+Example: workspace `AI career booster assistant` → slug `ai-career-booster-assistant` → id `connection-review-board-ai-career-booster-assistant`.
+
+If the slug is empty (unnameable path), fall back to the bare id `connection-review-board`. Compute this id the same way everywhere; never hardcode a specific board id.
+
+---
+
+## Drive export tool (build-time resolution)
+
+The dashboard's optional "Upload to Drive (CSV)" button calls a Google Drive connector from inside the artifact. The connector's tool name is **per user/install**, so it must never be hardcoded in the shipped HTML. The `connection-dashboard` skill resolves it at build time and substitutes the `__DRIVE_TOOL__` placeholder:
+
+- If the user has a Google Drive connector, substitute the fully-qualified `create_file` tool name (e.g. `mcp__<drive-server-uuid>__create_file`) and include that exact name in the artifact's `mcp_tools`.
+- If no Drive connector is available, substitute an empty string. The button stays hidden and `mcp_tools` remains `[]`.
+
+The button uploads the CSV as `text/csv`, which Drive converts to a Google Sheet. It is interactive-only (a present user triggers it); the daily scheduled run never calls Drive — background Drive access is unavailable.

@@ -2,7 +2,7 @@
 name: linkedin-outreach
 description: |
   Finds relevant LinkedIn contacts and drafts personalized connection requests and follow-up messages. Use when the user runs /find-connections or says "find recruiters on LinkedIn", "who should I connect with", "find hiring managers", "find people at this company", "draft a LinkedIn connection message", "find contacts for this role", or "help me with LinkedIn outreach". Requires a target company, role, or industry.
-allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input, WebSearch]
+allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input, WebSearch, mcp__cowork__list_artifacts, mcp__cowork__create_artifact, mcp__cowork__update_artifact]
 ---
 
 # LinkedIn outreach
@@ -97,6 +97,15 @@ For each contact identified and drafted this run that is NOT in the dedup set:
 5. Report: "Added N new connections to the queue (M skipped as duplicates). Queue total: T."
 
 Persistence is non-destructive — it never sends. Do not gate this step on confirmation.
+
+### Step 5.5: Refresh the review board (best-effort, non-fatal)
+
+After the queue is written, refresh the connection dashboard so newly found contacts appear without the user manually re-running `/connection-dashboard`. This step must **never** fail the run — the queue write in Step 5 is the durable result; a board refresh failure is only reported, not raised.
+
+1. Derive the per-workspace artifact id per `references/connection-queue-schema.md` → "Dashboard artifact id" (`connection-review-board-<workspace-slug>`, from `connectionQueuePath`).
+2. Read the dashboard template at `skills/connection-dashboard/references/dashboard.html`, substitute `__QUEUE_PATH__`, `__CONNECTIONS_JSON__`, and `__DRIVE_TOOL__` exactly as the `connection-dashboard` skill does (Step 2 there), and write to a scratch file.
+3. Call `list_artifacts`. If the derived id exists, `update_artifact`; otherwise `create_artifact` (create-or-update — so even an unattended daily run leaves a visible, current board). Set `mcp_tools` to the resolved Drive tool name if any, else `[]`.
+4. If any part of this fails (artifact tools unavailable, non-Cowork environment, etc.), report it in the summary and continue — do not abort. Append to the Step 5 summary: "Board refreshed." or "Board refresh skipped: <reason>."
 
 ### Execution context: interactive vs scheduled
 

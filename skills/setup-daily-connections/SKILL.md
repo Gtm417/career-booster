@@ -23,6 +23,8 @@ Before provisioning, confirm:
 
 1. **Browser connected** (Claude in Chrome) for live LinkedIn search, OR accept the WebSearch fallback. The **workspace folder must stay connected** so the scheduled run can read/write the queue with native file tools (no filesystem connector needed). A scheduled run can't prompt for connectors, so confirm these now.
 2. **Profile populated:** `targets.roles` and `targets.locations` must be non-empty, and `connectionQueuePath` must be set. If empty, instruct the user to run `/setup` first and stop.
+3. **Tools must be pre-approved.** A background run cannot answer permission prompts — it stalls on the first unapproved tool. Verified true for this plugin's flow. After creating the task, the user must run it once manually ("Run now") to approve the browser and artifact tools so future daily runs proceed unattended (Step 3.5).
+4. **No Drive in the background flow.** The Google Drive connector is unavailable in scheduled runs (requires interactive re-auth — verified). The daily task therefore does discovery + queue write + board refresh only; it never calls Drive. The board's Drive upload stays an interactive, user-pressed action.
 
 ## Inputs (optional arguments)
 
@@ -70,21 +72,31 @@ Run the Career Booster `linkedin-outreach` skill in UNATTENDED scheduled mode.
 4. For each new contact, draft a personalized connection note under 300 characters and capture name, title, company, profile URL, why-relevant, type, source, and titleVerified. Do not assert a title you didn't read off the profile — set titleVerified false and flag it in why-relevant if unverified.
 5. Append each as a new record (status "new") to the queue at connectionQueuePath, using read-modify-write. Generate ids as li-<today>-NNN. Update _lastUpdated.
 6. DO NOT send any connection requests or messages. Discovery and persistence only.
-7. Emit a one-line summary: "Added N new connections (M skipped as duplicates). Queue total: T." If notifications are on, this is the run notification.
+6.5. Best-effort, non-fatal: refresh the connection review board (linkedin-outreach Step 5.5). Derive the per-workspace artifact id (connection-review-board-<workspace-slug> from connectionQueuePath), build the HTML from skills/connection-dashboard/references/dashboard.html, and create-or-update that artifact so the new contacts are visible next time the board is opened. Do NOT call Google Drive (unavailable in background). If artifact tools fail, report and continue — never fail the run on the board.
+7. Emit a one-line summary: "Added N new connections (M skipped as duplicates). Queue total: T. Board refreshed/skipped: <which>." If notifications are on, this is the run notification.
 
 If Claude in Chrome is unavailable or the queue can't be written, persist whatever was gathered, then report the failure clearly. Never abort silently.
 ```
 
 - `notifyOnCompletion`: true (so the user sees the daily summary)
 
+### Step 3.5: Pre-approve the tools (one-time, required for unattended runs)
+
+Background runs cannot answer permission prompts, so the first run must be done with the user present to grant approvals (these are then stored on the task and auto-applied to future runs). After creating/updating the task, tell the user:
+
+> "Click **Run now** on the `career-booster-daily-connections` task once and approve the browser and artifact prompts. That pre-approves the tools so the daily run never stalls. Make sure Chrome is open and logged into LinkedIn before you do."
+
+If the user runs it now, confirm the trial run's summary and that approvals were granted.
+
 ### Step 4: Confirm and explain
 
 After creation/update, confirm to the user:
 
 - The schedule (e.g. "Every day at 08:00, find up to 5 new connections").
-- That it runs **only while the Claude app is open**; if closed at the scheduled time, it runs on next launch.
-- That it **never sends** — it only fills the review queue.
-- That the Browser connector must stay authenticated to LinkedIn for it to work.
+- That it runs **only while the Claude app is open** AND **Chrome is open and logged into LinkedIn**; if either is missing at fire time, discovery can't run. If the app is closed at the scheduled time, it runs on next launch.
+- That it must be **run once manually first** to pre-approve tools (Step 3.5), or daily runs will stall on permission prompts.
+- That it **never sends** — it only fills the review queue and refreshes the board.
+- That **Google Drive is not used** by the daily run (unavailable in the background); Drive upload is a manual action on the board.
 
 ## Output
 

@@ -48,6 +48,10 @@
   .savebar .hint { font-size:12px; color:#c7ccd2; }
   .toast { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); background:#1a1d21; color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none; }
   .toast.show { opacity:1; }
+  .pathbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#eef0f3; border-radius:8px; padding:6px 10px; margin:10px 0 0; font-size:11.5px; color:#5b636e; }
+  .pathbar code { background:#fff; border:1px solid #e4e7eb; border-radius:5px; padding:2px 6px; font:11px ui-monospace,Consolas,monospace; color:#3a4048; word-break:break-all; }
+  button.toolbtn { border:1px solid #d4d8dd; background:#fff; border-radius:999px; padding:4px 12px; font-size:12px; cursor:pointer; color:#3a4048; }
+  button.toolbtn:hover { background:#f0f1f3; }
 </style>
 </head>
 <body>
@@ -58,6 +62,7 @@
       <div class="sub">Career Booster · review here, send on LinkedIn yourself</div>
     </div>
   </header>
+  <div class="pathbar" id="queuePath"></div>
   <div class="counts" id="counts"></div>
   <div class="toolbar">
     <div class="chips" id="statusChips"></div>
@@ -68,6 +73,8 @@
       <option value="company-asc">Company A–Z</option>
       <option value="contactName-asc">Name A–Z</option>
     </select>
+    <button class="toolbtn" id="downloadCsv" title="Download the full queue as a CSV (opens in Excel)">⬇ CSV</button>
+    <button class="toolbtn" id="uploadDrive" title="Upload the queue as a CSV to Google Drive (becomes a Google Sheet)" style="display:none;">☁ Drive</button>
   </div>
   <div class="grid" id="grid"></div>
 </div>
@@ -97,9 +104,11 @@
    The skill substitutes:
      __QUEUE_PATH__       → absolute connectionQueuePath from the profile
      __CONNECTIONS_JSON__ → JSON array of the queue's `connections`
+     __DRIVE_TOOL__       → fully-qualified Drive create_file tool name, or "" if no Drive connector
    ============================================================ */
 const QUEUE_DATA = {
   "queuePath": "__QUEUE_PATH__",
+  "driveTool": "__DRIVE_TOOL__",
   "connections": __CONNECTIONS_JSON__
 };
 
@@ -207,6 +216,47 @@ document.getElementById("statusChips").addEventListener("click", e=>{ const s=e.
 document.getElementById("companyFilter").addEventListener("change", e=>{ view.company=e.target.value; save(LS_VIEW,view); render(); });
 document.getElementById("sortBy").addEventListener("change", e=>{ view.sort=e.target.value; save(LS_VIEW,view); render(); });
 document.getElementById("copyUpdates").addEventListener("click", copyUpdates);
+
+// Queue file path display (informational — the board never reads/writes it; the skill does)
+(function(){ const el=document.getElementById("queuePath"); if(el) el.innerHTML = 'Queue file: <code>'+esc(QUEUE_DATA.queuePath)+'</code>'; })();
+
+// CSV export — fully portable, uses no connector. Builds from the embedded snapshot.
+const CSV_COLS = ["id","contactName","contactTitle","company","type","status","linkedinUrl","whyRelevant","message","messageChars","dateFound","dateSent","source","titleVerified"];
+function csvCell(v){ if(v==null) return ""; const s=String(v); return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function buildCsv(){ const rows=QUEUE_DATA.connections.map(c=>CSV_COLS.map(k=>csvCell(c[k])).join(",")); return "﻿"+[CSV_COLS.join(",")].concat(rows).join("\r\n"); }
+function csvName(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return "connections-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"+p(d.getHours())+p(d.getMinutes())+".csv"; }
+document.getElementById("downloadCsv").addEventListener("click", ()=>{
+  if(!QUEUE_DATA.connections.length){ toast("Queue is empty — nothing to export"); return; }
+  const blob=new Blob([buildCsv()],{type:"text/csv;charset=utf-8"}), url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=csvName(); document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500); toast("CSV downloaded");
+});
+
+// Drive upload — only when the skill resolved a Drive connector tool at build time.
+// callMcpTool works for HOSTED connectors (Google Drive is hosted); local connectors return 400.
+(function(){
+  const tool = QUEUE_DATA.driveTool;
+  const btn = document.getElementById("uploadDrive");
+  if(!btn || !tool || tool.indexOf("__") === 0) return;      // placeholder unresolved → stay hidden
+  btn.style.display = "";
+  btn.addEventListener("click", async ()=>{
+    if(!QUEUE_DATA.connections.length){ toast("Queue is empty — nothing to upload"); return; }
+    if(!(window.cowork && window.cowork.callMcpTool)){ toast("Drive upload only works inside Cowork"); return; }
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = "Uploading…";
+    try {
+      const r = await window.cowork.callMcpTool(tool, {
+        title: csvName().replace(/\.csv$/, ""),   // Drive converts CSV → Google Sheet
+        textContent: buildCsv(),
+        contentMimeType: "text/csv"
+      });
+      const data = r && (r.structuredContent ?? (r.content && r.content[0] && JSON.parse(r.content[0].text)));
+      if(r && r.isError){ throw new Error((r.content && r.content[0] && r.content[0].text) || "upload failed"); }
+      toast("Uploaded to Drive" + (data && (data.title||data.name) ? ' as "'+(data.title||data.name)+'"' : "") + " — set sharing in Drive");
+    } catch(e){
+      toast("Drive upload failed: " + (e && e.message ? e.message : e));
+    } finally { btn.disabled = false; btn.textContent = orig; }
+  });
+})();
 
 render();
 </script>

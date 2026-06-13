@@ -2,7 +2,7 @@
 name: linkedin-outreach
 description: |
   Finds relevant LinkedIn contacts and drafts personalized connection requests and follow-up messages. Use when the user runs /find-connections or says "find recruiters on LinkedIn", "who should I connect with", "find hiring managers", "find people at this company", "draft a LinkedIn connection message", "find contacts for this role", or "help me with LinkedIn outreach". Requires a target company, role, or industry.
-allowed-tools: [mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input, WebSearch, mcp__cowork__list_artifacts, mcp__cowork__create_artifact, mcp__cowork__update_artifact]
+allowed-tools: [mcp__Claude_in_Chrome__list_connected_browsers, mcp__Claude_in_Chrome__navigate, mcp__Claude_in_Chrome__get_page_text, mcp__Claude_in_Chrome__find, mcp__Claude_in_Chrome__form_input, WebSearch, mcp__cowork__list_artifacts, mcp__cowork__create_artifact, mcp__cowork__update_artifact]
 ---
 
 # LinkedIn outreach
@@ -32,14 +32,25 @@ Load the profile to get `connectionQueuePath`, then read the connection queue (s
 - Read `config.targetRoles` / `config.targetCompanies` if set; otherwise fall back to the profile's `targets.roles`, `targets.locations`, and industries/companies of interest.
 - Build the dedup set: **normalized** `linkedinUrl` values already in the queue (lowercase, strip trailing slash, query, fragment). Never surface anyone already present, in ANY status.
 
+### Step 1.6: Establish the discovery channel (do this BEFORE searching — do not skip)
+
+Claude in Chrome is the **preferred** channel; WebSearch is a last resort. You MUST actively verify Chrome before falling back — never assume it is unavailable just because the tools aren't in front of you.
+
+1. **Make sure the Claude-in-Chrome tools are loaded.** In this runtime they may be *deferred* (present but not yet in your toolbox). If you do not currently see `mcp__Claude_in_Chrome__list_connected_browsers` and the other Chrome tools, **load them first** (e.g. via tool search for "Claude in Chrome" / "browser") before drawing any conclusion. Not seeing the tools is NOT evidence the browser is unavailable — it usually just means they haven't been loaded yet.
+2. **Probe for a connected browser.** Call `mcp__Claude_in_Chrome__list_connected_browsers`.
+   - If it returns one or more browsers → Chrome is available. Use it.
+   - If it returns none (or the tool genuinely cannot be loaded in this environment) → only then consider WebSearch.
+3. **Confirm LinkedIn login (Chrome path).** Navigate to `https://www.linkedin.com/feed/` (or the people-search URL) and check for a login wall. If logged in → proceed with Chrome. If a login wall appears: interactive run — tell the user "Chrome is connected but not logged into LinkedIn; log in and re-run, or I'll use the shallower WebSearch fallback" and wait; scheduled/unattended run — note it and fall back to WebSearch.
+4. **State the decision and the reason**, e.g. "Channel: Claude in Chrome (browser connected, LinkedIn logged in)" or "Channel: WebSearch fallback — no connected browser found." Never fall back silently.
+
 ### Step 1: Identify targets (multi-channel)
 
-Pick the discovery channel by availability:
+Run the search on the channel established in Step 1.6:
 
-- **Preferred — Claude in Chrome** (if the browser connector is connected and logged into LinkedIn): run a LinkedIn people search (`/search/results/people/?keywords=…`) using role + location + target companies. Chrome sees degree (1st/2nd/3rd), mutual connections, and live profile detail. Tag these contacts `source: "chrome"`.
-- **Fallback — WebSearch** (if Chrome is unavailable): query `site:linkedin.com/in <role> <location> <company>`. This is broad and login-free but shallow — it returns only Google-indexed snippets, no degree/mutuals, and titles may be stale. Tag these `source: "websearch"`.
+- **Claude in Chrome** (chosen when a browser is connected and LinkedIn is logged in): run a LinkedIn people search (`/search/results/people/?keywords=…`) using role + location + target companies. Chrome sees degree (1st/2nd/3rd), mutual connections, and live profile detail. Tag these contacts `source: "chrome"`.
+- **WebSearch** (only when Step 1.6 ruled out Chrome): query `site:linkedin.com/in <role> <location> <company>`. This is broad and login-free but shallow — it returns only Google-indexed snippets, no degree/mutuals, and titles may be stale. Tag these `source: "websearch"`.
 
-State which channel you used. Domain matters: a generic role keyword (e.g. "architect") may surface the wrong field (software vs building) — refine with domain terms or target known firms by name.
+State which channel you used (carry the decision and reason from Step 1.6). Domain matters: a generic role keyword (e.g. "architect") may surface the wrong field (software vs building) — refine with domain terms or target known firms by name.
 
 Priority order for who to surface:
 1. **Hiring managers** — "Head of", "Director of", "VP of", "Lead" in the relevant department

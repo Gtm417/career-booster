@@ -108,7 +108,8 @@
    ============================================================ */
 const QUEUE_DATA = {
   "queuePath": "__QUEUE_PATH__",
-  "driveTool": "__DRIVE_TOOL__",
+  "driveTool": "mcp__205b77f2-291a-4d3d-b633-ed56405ca47b__create_file",
+  "driveFolderId": "1XKFAeqckIj7dBkLu4npDa4ACk0wZfUg4",
   "connections": __CONNECTIONS_JSON__
 };
 
@@ -244,11 +245,13 @@ document.getElementById("downloadCsv").addEventListener("click", ()=>{
     if(!(window.cowork && window.cowork.callMcpTool)){ toast("Drive upload only works inside Cowork"); return; }
     btn.disabled = true; const orig = btn.textContent; btn.textContent = "Uploading…";
     try {
-      const r = await window.cowork.callMcpTool(tool, {
+      const _args = {
         title: csvName().replace(/\.csv$/, ""),   // Drive converts CSV → Google Sheet
         textContent: buildCsv(),
         contentMimeType: "text/csv"
-      });
+      };
+      if (QUEUE_DATA.driveFolderId && QUEUE_DATA.driveFolderId.indexOf("__") !== 0) _args.parentId = QUEUE_DATA.driveFolderId;
+      const r = await window.cowork.callMcpTool(tool, _args);
       const data = r && (r.structuredContent ?? (r.content && r.content[0] && JSON.parse(r.content[0].text)));
       if(r && r.isError){ throw new Error((r.content && r.content[0] && r.content[0].text) || "upload failed"); }
       toast("Uploaded to Drive" + (data && (data.title||data.name) ? ' as "'+(data.title||data.name)+'"' : "") + " — set sharing in Drive");

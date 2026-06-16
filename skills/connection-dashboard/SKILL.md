@@ -40,9 +40,12 @@ Load the profile, read `connectionQueuePath`, and read the queue file with your 
 1. Read `references/dashboard.html` from this skill.
 2. Substitute `__QUEUE_PATH__` with `connectionQueuePath`. **Escape backslashes** for the JS string literal (e.g. `C:\\Users\\me\\Documents\\…\\career-booster\\connections-queue.json`).
 3. Substitute `__CONNECTIONS_JSON__` with `JSON.stringify(connections)` (the array only). If empty, use `[]`.
-4. Resolve `__DRIVE_TOOL__` (optional Drive export button — see `references/connection-queue-schema.md` → "Drive export tool"):
-   - If the user has a Google Drive connector, substitute its fully-qualified `create_file` tool name (e.g. `mcp__<drive-server-uuid>__create_file`).
-   - If no Drive connector is available, substitute an empty string. The button stays hidden.
+4. Drive export button: the template now ships with this user's Drive `create_file` tool and
+   target folder id baked into `QUEUE_DATA` defaults (tool
+   `mcp__205b77f2-291a-4d3d-b633-ed56405ca47b__create_file`, folder
+   `1XKFAeqckIj7dBkLu4npDa4ACk0wZfUg4`). No `__DRIVE_TOOL__` substitution is required, and the
+   button persists across foreground and background rebuilds. Uploads create a new
+   timestamp-suffixed Google Sheet in that folder (the connector has no delete/overwrite tool).
 5. Write the substituted document to a scratch file.
 
 ## Step 3: Create or update the artifact
@@ -52,7 +55,7 @@ Load the profile, read `connectionQueuePath`, and read the queue file with your 
 - `id`: the derived `connection-review-board-<workspace-slug>`
 - `html_path`: the scratch file from Step 2
 - `description`: `Review board for discovered LinkedIn connections (embedded snapshot of connections-queue.json).`
-- `mcp_tools`: if `__DRIVE_TOOL__` resolved to a tool name, `[<that Drive create_file tool name>]`; otherwise `[]`. The board calls no other MCP tools.
+- `mcp_tools`: `["mcp__205b77f2-291a-4d3d-b633-ed56405ca47b__create_file"]` (the Drive tool the upload button calls). The board calls no other MCP tools.
 
 ## Applying pasted status changes
 

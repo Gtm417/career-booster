@@ -81,12 +81,24 @@ Hand them a concise "search string"; never dump a CV.
 
 Craft-to-craft framing. **Zero mention of jobs or referrals.** No specific reaction needed.
 
-> Hi [Name] — fellow [role] here. I'm expanding my network in [location]. Would love to
-> connect with others doing similar work — always up for trading notes.
+**Voice rules specific to this template (do not skip):**
+- **Self-describe, don't assert shared role.** Never open with "fellow [role] here" — that
+  states the *contact's* role as fact, which is rarely verified (Step 1.7 verifies the
+  contact's title, not that it matches the sender's field). Say "I'm a/an [role] working in
+  [specialization]" instead — a claim only about the sender, always true.
+- **Comma greeting, not em dash.** "Hi [Name]," — not "Hi [Name] —". The dash reads as
+  templated.
+- **No closing tagline.** Stop after the location/interest line. Do not append a flourish
+  like "always up for trading notes," "excited to connect," or similar — these are the
+  generic LinkedIn-speak guardrail #6 (`SKILL.md`) already prohibits; the old template text
+  itself violated it.
 
-**No-hook variant** (peer, company unverified):
-> Hi [Name] — fellow [role]. I'm growing my network of people doing similar work and would
-> be glad to connect and trade notes.
+> Hi [Name], I'm a/an [role] working in [specialization]. I'm expanding my network in
+> [location] and would love to connect with [specialists/people] in [city].
+
+**No-hook variant** (contact's field/location unverified):
+> Hi [Name], I'm a/an [role] working in [specialization]. I'm expanding my network in
+> [location] and would be glad to connect.
 
 ### 3.4 Hiring managers — honest generic (a job-ask reads as noise, so no ask)
 
